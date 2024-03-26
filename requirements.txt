@@ -1,0 +1,9 @@
+fastapi~=0.110.0
+alembic
+sqlalchemy
+psycopg2-binary
+uvicorn
+python-dotenv~=1.0.1
+PyJWT~=2.8.0
+starlette~=0.36.3
+passlib[bcrypt]
