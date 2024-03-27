@@ -77,7 +77,7 @@ async def get_items_summary(db: Session = Depends(get_db)):
 
 @router.get("/items/search/", response_model=List[ItemOut])
 async def search_items_by_name(name: str, db: Session = Depends(get_db)):
-    items = db.query(Item).filter(Item.name.like(f"%{name}%")).all()
+    items = db.query(Item).filter(func.lower(Item.name).like(func.lower(f"%{name}%"))).all()
     return items
 
 
@@ -141,7 +141,8 @@ async def sell_wholesale(
             buyer=wholesale_sale.buyer,
             extra_info=wholesale_sale.extra_info,
             before_change=json.dumps({}),  # Сериализуем пустой словарь в JSON-строку
-            after_change=json.dumps({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price}),  # Сериализуем измененные данные в JSON-строку
+            after_change=json.dumps({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price}),
+            # Сериализуем измененные данные в JSON-строку
             history_type="opt",
             title=title
         )
@@ -174,7 +175,8 @@ async def sell_retail(
             buyer=None,
             extra_info=retail_sale.extra_info,
             before_change=json.dumps({}),  # Сериализуем пустой словарь в JSON-строку
-            after_change=json.dumps({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price}),  # Сериализуем измененные данные в JSON-строку
+            after_change=json.dumps({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price}),
+            # Сериализуем измененные данные в JSON-строку
             history_type="sale",
             title=title
         )
