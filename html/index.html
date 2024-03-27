@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product List</title>
+</head>
+<body>
+    <h1>Product List</h1>
+    <table id="product-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody id="product-table-body">
+            <!-- Product rows will be dynamically added here -->
+        </tbody>
+    </table>
+    <button id="load-more">Load More</button>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var skip = 0;
+            var limit = 10;
+            var productTableBody = document.getElementById("product-table-body");
+            var loadMoreButton = document.getElementById("load-more");
+
+            function fetchProducts() {
+                var xhr = new XMLHttpRequest();
+                var url = "http://195.49.210.50:8001/items/?skip=" + skip + "&limit=" + limit;
+                xhr.open("GET", url, true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState == 4 && xhr.status == 200) {
+                        var products = JSON.parse(xhr.responseText);
+                        displayProducts(products);
+                    }
+                };
+                xhr.send();
+            }
+
+            function displayProducts(products) {
+                products.forEach(function(product) {
+                    var row = document.createElement("tr");
+                    row.innerHTML = "<td>" + product.name + "</td><td>" + product.quantity + "</td><td>" + product.price + "</td>";
+                    productTableBody.appendChild(row);
+                });
+            }
+
+            loadMoreButton.addEventListener("click", function() {
+                skip += limit;
+                fetchProducts();
+            });
+
+            fetchProducts(); // Initial fetch
+        });
+    </script>
+</body>
+</html>
