@@ -44,7 +44,7 @@ async def create_or_update_items(items: List[ItemCreate], db: Session = Depends(
     items_dict = [item.dict() for item in items]
     after_change_json = json.dumps(items_dict, ensure_ascii=False)
 
-    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} Добавление товара | {datetime.now().strftime('%H:%M')}"
+    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} | Добавление товара | {datetime.now().strftime('%H:%M')}"
     history_entry = History(
         username=current_user.username,
         after_change=after_change_json,
@@ -81,7 +81,7 @@ async def search_items_by_name(name: str, db: Session = Depends(get_db)):
     return items
 
 
-@router.put("/items/{item_id}", response_model=ItemOut)
+@router.put("/items/{item_id}", response_model=List[ItemOut])
 async def update_item(
         item_id: int,
         item_update: ItemUpdate,
@@ -93,94 +93,105 @@ async def update_item(
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    before_change = {
+    before_change = [{
         "name": db_item.name,
         "price": db_item.price,
         "quantity": db_item.quantity
-    }
+    }]
+    after_change = [{
+        "name": item_update.name,
+        "price": item_update.price,
+        "quantity": item_update.quantity
+    }]
     for key, value in item_update.dict().items():
         setattr(db_item, key, value)
     db.commit()
     db.refresh(db_item)
 
-    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} Изменения товара | {datetime.now().strftime('%H:%M')}"
+    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} | Изменения товара | {datetime.now().strftime('%H:%M')}"
     history_entry = History(
         username=current_user.username,
         before_change=json.dumps(before_change),
-        after_change=json.dumps(item_update.dict()),
+        after_change=json.dumps(after_change),
         history_type="update",
-        extra_info=extra_info,  # Подставляем значение extra_info, если оно было передано
+        extra_info=extra_info,
         title=title
     )
     db.add(history_entry)
     db.commit()
 
-    return db_item
+    return [db_item]
 
 
-@router.post("/sell/wholesale/", response_model=HistoryCreate)
+@router.post("/sell/wholesale/")
 async def sell_wholesale(
         wholesale_sale: WholesaleSale,
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
+    # Собираем данные о продаже для истории
+    sale_items = []
     for item_data in wholesale_sale.items:
         db_item = db.query(Item).filter(Item.name == item_data.name).first()
         if not db_item:
-            raise HTTPException(status_code=404, detail="Item not found")
+            raise HTTPException(status_code=404, detail=f"Item '{item_data.name}' not found")
 
         if db_item.quantity < item_data.quantity:
-            raise HTTPException(status_code=400, detail="Not enough items in stock")
+            raise HTTPException(status_code=400, detail=f"Not enough '{item_data.name}' in stock")
 
         db_item.quantity -= item_data.quantity
-        db.commit()
 
-        title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} Оптовая продажа | {datetime.now().strftime('%H:%M')}"
-        history_entry = History(
-            username=current_user.username,
-            buyer=wholesale_sale.buyer,
-            extra_info=wholesale_sale.extra_info,
-            before_change=json.dumps({}),  # Сериализуем пустой словарь в JSON-строку
-            after_change=json.dumps({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price}),
-            # Сериализуем измененные данные в JSON-строку
-            history_type="opt",
-            title=title
-        )
-        db.add(history_entry)
-        db.commit()
+        sale_items.append({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price})
+
+    # Создаем запись в истории для всей продажи
+    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} | Оптовая продажа | {datetime.now().strftime('%H:%M')}"
+    history_entry = History(
+        username=current_user.username,
+        buyer=wholesale_sale.buyer,
+        extra_info=wholesale_sale.extra_info,
+        before_change=[],  # Пустой список для before_change
+        after_change=json.dumps(sale_items),  # Преобразование в JSON для after_change
+        history_type="opt",
+        title=title
+    )
+    db.add(history_entry)
+    db.commit()
 
     return history_entry
 
 
-@router.post("/sell/retail/", response_model=HistoryCreate)
+@router.post("/sell/retail/")
 async def sell_retail(
         retail_sale: RetailSale,
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
+    # Собираем данные о продаже для истории
+    sale_items = []
     for item_data in retail_sale.items:
         db_item = db.query(Item).filter(Item.name == item_data.name).first()
         if not db_item:
-            raise HTTPException(status_code=404, detail="Item not found")
+            raise HTTPException(status_code=404, detail=f"Item '{item_data.name}' not found")
 
         if db_item.quantity < item_data.quantity:
-            raise HTTPException(status_code=400, detail="Not enough items in stock")
+            raise HTTPException(status_code=400, detail=f"Not enough '{item_data.name}' in stock")
 
         db_item.quantity -= item_data.quantity
-        db.commit()
 
-        title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} Розничная продажа | {datetime.now().strftime('%H:%M')}"
-        history_entry = History(
-            username=current_user.username,
-            buyer=None,
-            extra_info=retail_sale.extra_info,
-            before_change=json.dumps({}),  # Сериализуем пустой словарь в JSON-строку
-            after_change=json.dumps({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price}),
-            # Сериализуем измененные данные в JSON-строку
-            history_type="sale",
-            title=title
-        )
-        db.add(history_entry)
-        db.commit()
+        sale_items.append({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price})
+
+    # Создаем запись в истории для всей продажи
+    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} | Розничная продажа | {datetime.now().strftime('%H:%M')}"
+    history_entry = History(
+        username=current_user.username,
+        buyer=None,
+        extra_info=retail_sale.extra_info,
+        before_change=[],  # Пустой список для before_change
+        after_change=json.dumps(sale_items),  # Преобразование в JSON для after_change
+        history_type="sale",
+        title=title
+    )
+    db.add(history_entry)
+    db.commit()
 
     return history_entry

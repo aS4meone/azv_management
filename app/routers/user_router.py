@@ -1,16 +1,32 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.core.security.tokens import create_access_token
-from app.crud import change_password
 from app.dependencies.database.database import get_db
 from app.dependencies.get_current_user import get_current_user
+from app.models.history import History
+from app.models.item import Item
+from app.models.user_model import User as DBUser
 from app.schemas.password_schema import PasswordChange
 from app.schemas.user_schemas import User, UserCreate, UserLogin
 
 router = APIRouter(tags=['auth'])
+
+
+@router.delete("/clear-database/")
+def clear_database(db: Session = Depends(get_db)):
+    """ПРОСТО ТАК НЕ НАЖИМАТЬ"""
+    try:
+        db.query(History).delete()
+        db.query(Item).delete()
+        db.query(DBUser).delete()
+
+        db.commit()
+
+        return {"message": "All tables cleared successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/users/", response_model=User)
