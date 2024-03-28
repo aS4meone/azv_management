@@ -149,7 +149,7 @@ async def sell_wholesale(
         username=current_user.username,
         buyer=wholesale_sale.buyer,
         extra_info=wholesale_sale.extra_info,
-        before_change=[],  # Пустой список для before_change
+        before_change=json.dumps([{}]),  # Исправлено на пустой список
         after_change=json.dumps(sale_items),  # Преобразование в JSON для after_change
         history_type="opt",
         title=title
@@ -186,7 +186,7 @@ async def sell_retail(
         username=current_user.username,
         buyer=None,
         extra_info=retail_sale.extra_info,
-        before_change=[],  # Пустой список для before_change
+        before_change=json.dumps([{}]),  # Исправлено на пустой список
         after_change=json.dumps(sale_items),  # Преобразование в JSON для after_change
         history_type="sale",
         title=title
