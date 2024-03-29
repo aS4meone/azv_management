@@ -1,7 +1,8 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Body
+from pytz import utc
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List, Dict, Union, Optional
@@ -10,7 +11,6 @@ from app.dependencies.database.database import get_db
 from app.models.history import History
 from app.models.item import Item
 from app.models.user_model import User
-from app.schemas.history_schemas import HistoryCreate
 from app.schemas.item_schemas import ItemCreate, ItemOut, ItemUpdate, RetailSale, WholesaleSale
 from app.dependencies.get_current_user import get_current_user
 
@@ -22,7 +22,6 @@ async def create_or_update_items(items: List[ItemCreate], db: Session = Depends(
                                  current_user: User = Depends(get_current_user)):
     created_or_updated_items = []
     for item in items:
-        # Проверяем, существует ли товар с таким именем
         existing_item = db.query(Item).filter(Item.name == item.name).first()
 
         if existing_item:
@@ -44,12 +43,17 @@ async def create_or_update_items(items: List[ItemCreate], db: Session = Depends(
     items_dict = [item.dict() for item in items]
     after_change_json = json.dumps(items_dict, ensure_ascii=False)
 
-    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} | Добавление товара | {datetime.now().strftime('%H:%M')}"
+    current_datetime = datetime.now(utc)
+
+    shifted_datetime = current_datetime + timedelta(hours=5)
+
+    title = f"{shifted_datetime.strftime('%d.%m.%Y')} | {current_user.username} | Добавление товара | {shifted_datetime.strftime('%H:%M')}"
     history_entry = History(
         username=current_user.username,
         after_change=after_change_json,
         history_type="add",
-        title=title
+        title=title,
+        timestamp=shifted_datetime
     )
     db.add(history_entry)
     db.commit()
@@ -87,7 +91,7 @@ async def update_item(
         item_update: ItemUpdate,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user),
-        extra_info: Optional[str] = Body(None)  # Поле extra_info необязательно
+        extra_info: Optional[str] = Body(None)
 ):
     db_item = db.query(Item).filter(Item.id == item_id).first()
     if not db_item:
@@ -108,14 +112,19 @@ async def update_item(
     db.commit()
     db.refresh(db_item)
 
-    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} | Изменения товара | {datetime.now().strftime('%H:%M')}"
+    current_datetime = datetime.now(utc)
+
+    shifted_datetime = current_datetime + timedelta(hours=5)
+
+    title = f"{shifted_datetime.strftime('%d.%m.%Y')} | {current_user.username} | Изменения товара | {shifted_datetime.strftime('%H:%M')}"
     history_entry = History(
         username=current_user.username,
         before_change=json.dumps(before_change),
         after_change=json.dumps(after_change),
         history_type="update",
         extra_info=extra_info,
-        title=title
+        title=title,
+        timestamp=shifted_datetime
     )
     db.add(history_entry)
     db.commit()
@@ -129,7 +138,6 @@ async def sell_wholesale(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    # Собираем данные о продаже для истории
     sale_items = []
     for item_data in wholesale_sale.items:
         db_item = db.query(Item).filter(Item.name == item_data.name).first()
@@ -143,16 +151,20 @@ async def sell_wholesale(
 
         sale_items.append({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price})
 
-    # Создаем запись в истории для всей продажи
-    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} | Оптовая продажа | {datetime.now().strftime('%H:%M')}"
+    current_datetime = datetime.now(utc)
+
+    shifted_datetime = current_datetime + timedelta(hours=5)
+
+    title = f"{shifted_datetime.strftime('%d.%m.%Y')} | {current_user.username} | Оптовая продажа | {shifted_datetime.strftime('%H:%M')}"
     history_entry = History(
         username=current_user.username,
         buyer=wholesale_sale.buyer,
         extra_info=wholesale_sale.extra_info,
-        before_change=json.dumps([{}]),  # Исправлено на пустой список
-        after_change=json.dumps(sale_items),  # Преобразование в JSON для after_change
+        before_change=json.dumps([{}]),
+        after_change=json.dumps(sale_items),
         history_type="opt",
-        title=title
+        title=title,
+        timestamp=shifted_datetime
     )
     db.add(history_entry)
     db.commit()
@@ -180,16 +192,21 @@ async def sell_retail(
 
         sale_items.append({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price})
 
-    # Создаем запись в истории для всей продажи
-    title = f"{datetime.now().strftime('%d.%m.%Y')} | {current_user.username} | Розничная продажа | {datetime.now().strftime('%H:%M')}"
+    current_datetime = datetime.now(utc)
+
+    shifted_datetime = current_datetime + timedelta(hours=5)
+
+    title = f"{shifted_datetime.strftime('%d.%m.%Y')} | {current_user.username} | Розничная продажа | {shifted_datetime.strftime('%H:%M')}"
+
     history_entry = History(
         username=current_user.username,
         buyer=None,
         extra_info=retail_sale.extra_info,
-        before_change=json.dumps([{}]),  # Исправлено на пустой список
-        after_change=json.dumps(sale_items),  # Преобразование в JSON для after_change
+        before_change=json.dumps([{}]),
+        after_change=json.dumps(sale_items),
         history_type="sale",
-        title=title
+        title=title,
+        timestamp=shifted_datetime
     )
     db.add(history_entry)
     db.commit()

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from pytz import timezone, utc
+from sqlalchemy import Column, Integer, String, Text, DateTime, text
 from sqlalchemy.sql import func
 from app.dependencies.database.database import Base
 
@@ -15,5 +16,3 @@ class History(Base):
     after_change = Column(Text)
     history_type = Column(String)
     title = Column(String)
-
-
