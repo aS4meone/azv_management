@@ -40,8 +40,12 @@ async def read_history(
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
             "id": entry_dict["id"],
-            "timestamp": entry_dict["timestamp"]
+            "timestamp": entry_dict["timestamp"],
+            "total_unique_items_count": entry_dict["total_unique_items_count"],  # Добавлено
+            "total_items_count": entry_dict["total_items_count"],  # Добавлено
+            "total_price": entry_dict["total_price"]  # Добавлено
         }
         corrected_history_entries.append(ScHistory(**corrected_entry))
 
     return corrected_history_entries
+

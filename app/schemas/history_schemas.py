@@ -11,6 +11,9 @@ class HistoryBase(BaseModel):
     after_change: Json[Any]
     history_type: str
     title: Optional[str] = None
+    total_unique_items_count: Optional[int] = None
+    total_items_count: Optional[int] = None
+    total_price: Optional[float] = None
 
 
 class HistoryCreate(HistoryBase):

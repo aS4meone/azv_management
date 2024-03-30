@@ -16,3 +16,6 @@ class History(Base):
     after_change = Column(Text)
     history_type = Column(String)
     title = Column(String)
+    total_unique_items_count = Column(Integer)
+    total_items_count = Column(Integer)
+    total_price = Column(Integer)
