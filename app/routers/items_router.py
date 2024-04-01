@@ -149,12 +149,13 @@ async def sell_wholesale(
 
     for item_data in wholesale_sale.items:
         db_item = db.query(Item).filter(Item.name == item_data.name).first()
-        print("ЕСТЬ 1")
         if not db_item:
             raise HTTPException(status_code=404, detail=f"Item '{item_data.name}' not found")
 
         if db_item.quantity < item_data.quantity:
             raise HTTPException(status_code=400, detail=f"Not enough '{item_data.name}' in stock")
+
+        db_item.quantity -= item_data.quantity
 
         sale_items.append({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price})
 
@@ -201,6 +202,8 @@ async def sell_retail(
 
         if db_item.quantity < item_data.quantity:
             raise HTTPException(status_code=400, detail=f"Not enough '{item_data.name}' in stock")
+
+        db_item.quantity -= item_data.quantity
 
         sale_items.append({"name": db_item.name, "quantity": item_data.quantity, "price": db_item.price})
 
