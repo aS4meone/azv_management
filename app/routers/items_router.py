@@ -71,13 +71,14 @@ async def create_or_update_items(items: List[ItemCreate], db: Session = Depends(
 
 
 @router.get("/items/", response_model=List[ItemOut])
-async def read_items(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+async def read_items(skip: int = 0, limit: int = 10, db: Session = Depends(get_db),
+                     current_user: User = Depends(get_current_user)):
     items = db.query(Item).offset(skip).limit(limit).all()
     return items
 
 
 @router.get("/items/summary/", response_model=Dict[str, Union[int, float]])
-async def get_items_summary(db: Session = Depends(get_db)):
+async def get_items_summary(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     unique_items_count = db.query(Item).distinct(Item.name).count()
     total_items_count = db.query(func.sum(Item.quantity)).scalar() or 0
     total_price = db.query(func.sum(Item.price * Item.quantity)).scalar() or 0.0
@@ -88,7 +89,7 @@ async def get_items_summary(db: Session = Depends(get_db)):
 
 
 @router.get("/items/search/", response_model=List[ItemOut])
-async def search_items_by_name(name: str, db: Session = Depends(get_db)):
+async def search_items_by_name(name: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     items = db.query(Item).filter(func.lower(Item.name).like(func.lower(f"%{name}%"))).all()
     return items
 

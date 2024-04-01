@@ -7,7 +7,9 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.dependencies.database.database import get_db
+from app.dependencies.get_current_user import get_current_user
 from app.models.history import History
+from app.models.user_model import User
 from app.schemas.history_schemas import History as ScHistory
 
 router = APIRouter(tags=['history'])
@@ -15,7 +17,7 @@ router = APIRouter(tags=['history'])
 
 @router.get("/history/", response_model=List[ScHistory])
 async def read_history(
-        skip: int = 0, limit: int = 10, history_type: str = None, db: Session = Depends(get_db)
+        skip: int = 0, limit: int = 10, history_type: str = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     query = db.query(History).order_by(desc(History.timestamp))
 
