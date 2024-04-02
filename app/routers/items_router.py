@@ -168,7 +168,7 @@ async def sell_wholesale(
     current_datetime = datetime.now(utc)
     shifted_datetime = current_datetime + timedelta(hours=5)
 
-    title = f"{shifted_datetime.strftime('%d.%m.%Y')} | {current_user.username} | Оптовая продажа | {shifted_datetime.strftime('%H:%M')}"
+    title = f"{shifted_datetime.strftime('%d.%m.%Y')} | {current_user.username} | Оптовая продажа | {wholesale_sale.buyer} |{shifted_datetime.strftime('%H:%M')}"
 
     history_entry = History(
         username=current_user.username,
