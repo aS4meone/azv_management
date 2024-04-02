@@ -89,7 +89,8 @@ async def get_items_summary(db: Session = Depends(get_db), current_user: User = 
 
 
 @router.get("/items/search/", response_model=List[ItemOut])
-async def search_items_by_name(name: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def search_items_by_name(name: str, db: Session = Depends(get_db),
+                               current_user: User = Depends(get_current_user)):
     items = db.query(Item).filter(func.lower(Item.name).like(func.lower(f"%{name}%"))).all()
     return items
 
@@ -235,3 +236,9 @@ async def sell_retail(
     db.commit()
 
     return history_entry
+
+
+@router.get("/items/", response_model=List[ItemOut])
+async def read_items(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    items = db.query(Item).order_by(Item.name).all()
+    return items
