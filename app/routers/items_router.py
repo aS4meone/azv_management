@@ -238,7 +238,7 @@ async def sell_retail(
     return history_entry
 
 
-@router.get("/items/", response_model=List[ItemOut])
+@router.get("/items_tg/", response_model=List[ItemOut])
 async def read_items(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     items = db.query(Item).order_by(Item.name).all()
     return items
