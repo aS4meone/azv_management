@@ -8,3 +8,7 @@ PyJWT~=2.8.0
 starlette~=0.36.3
 passlib[bcrypt]
 pytz
+pandas
+openpyxl
+schedule
+telebot
