@@ -239,6 +239,6 @@ async def sell_retail(
 
 
 @router.get("/items_tg/", response_model=List[ItemOut])
-async def read_items(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+async def read_items(db: Session = Depends(get_db)):
     items = db.query(Item).order_by(Item.name).all()
     return items
