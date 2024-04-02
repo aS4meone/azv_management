@@ -73,7 +73,7 @@ async def create_or_update_items(items: List[ItemCreate], db: Session = Depends(
 @router.get("/items/", response_model=List[ItemOut])
 async def read_items(skip: int = 0, limit: int = 10, db: Session = Depends(get_db),
                      current_user: User = Depends(get_current_user)):
-    items = db.query(Item).offset(skip).limit(limit).all()
+    items = db.query(Item).order_by(Item.name).offset(skip).limit(limit).all()
     return items
 
 
