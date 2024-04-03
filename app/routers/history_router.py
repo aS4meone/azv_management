@@ -58,13 +58,17 @@ async def search_history(
         query_string: str, db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
+    # Разбиваем строку запроса на отдельные слова
     search_terms = query_string.split()
 
+    # Формируем условие для поиска по текстовым колонкам
     search_filter = or_(
         *[getattr(History, column_name).ilike(f'%{term}%') for term in search_terms
-          for column_name in History.__table__.columns.keys()]
+          for column_name in ['username', 'buyer', 'extra_info', 'before_change',
+                              'after_change', 'history_type', 'title']]
     )
 
+    # Выполняем запрос с учетом фильтрации
     history_entries = (
         db.query(History)
         .filter(search_filter)
@@ -72,6 +76,7 @@ async def search_history(
         .all()
     )
 
+    # Преобразуем результаты запроса в соответствующий формат
     corrected_history_entries = []
     for entry in history_entries:
         after_change_json = json.loads(entry.after_change.replace('\\"', ''))
@@ -99,13 +104,11 @@ async def search_history(
 
 
 @router.delete("/history/{history_id}/")
-async def delete_history_entry(history_id: int, db: Session = Depends(get_db),
-                               current_user: User = Depends(get_current_user)):
+async def delete_history_entry(history_id: int, db: Session = Depends(get_db)):
     history_entry = db.query(History).filter(History.id == history_id).first()
 
     if not history_entry:
         raise HTTPException(status_code=404, detail="History date not found")
-
 
     db.delete(history_entry)
     db.commit()
