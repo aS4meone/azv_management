@@ -2,8 +2,8 @@ import json
 
 from typing import List
 
-from fastapi import APIRouter, Depends
-from sqlalchemy import desc
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
 from app.dependencies.database.database import get_db
@@ -17,7 +17,8 @@ router = APIRouter(tags=['history'])
 
 @router.get("/history/", response_model=List[ScHistory])
 async def read_history(
-        skip: int = 0, limit: int = 10, history_type: str = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+        skip: int = 0, limit: int = 10, history_type: str = None, db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
 ):
     query = db.query(History).order_by(desc(History.timestamp))
 
@@ -43,11 +44,70 @@ async def read_history(
             "title": entry_dict["title"],
             "id": entry_dict["id"],
             "timestamp": entry_dict["timestamp"],
-            "total_unique_items_count": entry_dict["total_unique_items_count"],  # Добавлено
-            "total_items_count": entry_dict["total_items_count"],  # Добавлено
-            "total_price": entry_dict["total_price"]  # Добавлено
+            "total_unique_items_count": entry_dict["total_unique_items_count"],
+            "total_items_count": entry_dict["total_items_count"],
+            "total_price": entry_dict["total_price"]
         }
         corrected_history_entries.append(ScHistory(**corrected_entry))
 
     return corrected_history_entries
 
+
+@router.get("/history/search/", response_model=List[ScHistory])
+async def search_history(
+        query_string: str, db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    search_terms = query_string.split()
+
+    search_filter = or_(
+        *[getattr(History, column_name).ilike(f'%{term}%') for term in search_terms
+          for column_name in History.__table__.columns.keys()]
+    )
+
+    history_entries = (
+        db.query(History)
+        .filter(search_filter)
+        .order_by(desc(History.timestamp))
+        .all()
+    )
+
+    corrected_history_entries = []
+    for entry in history_entries:
+        after_change_json = json.loads(entry.after_change.replace('\\"', ''))
+
+        entry_dict = entry.__dict__
+        entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
+
+        corrected_entry = {
+            "username": entry_dict["username"],
+            "buyer": entry_dict["buyer"],
+            "extra_info": entry_dict["extra_info"],
+            "before_change": entry_dict["before_change"],
+            "after_change": json.dumps(after_change_json),
+            "history_type": entry_dict["history_type"],
+            "title": entry_dict["title"],
+            "id": entry_dict["id"],
+            "timestamp": entry_dict["timestamp"],
+            "total_unique_items_count": entry_dict["total_unique_items_count"],
+            "total_items_count": entry_dict["total_items_count"],
+            "total_price": entry_dict["total_price"]
+        }
+        corrected_history_entries.append(ScHistory(**corrected_entry))
+
+    return corrected_history_entries
+
+
+@router.delete("/history/{history_id}/")
+async def delete_history_entry(history_id: int, db: Session = Depends(get_db),
+                               current_user: User = Depends(get_current_user)):
+    history_entry = db.query(History).filter(History.id == history_id).first()
+
+    if not history_entry:
+        raise HTTPException(status_code=404, detail="History date not found")
+
+
+    db.delete(history_entry)
+    db.commit()
+
+    return {"message": "Success"}
