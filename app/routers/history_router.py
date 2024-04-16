@@ -1,5 +1,4 @@
 import json
-import re
 
 from typing import List
 
@@ -16,17 +15,6 @@ from app.schemas.history_schemas import History as ScHistory
 router = APIRouter(tags=['history'])
 
 
-def replace_unicode_escapes(data: str) -> str:
-    unicode_escape_pattern = re.compile(r'\\u([\d\w]{4})')
-
-    def replace(match):
-        # Получаем значение Unicode и преобразуем его в символ
-        return chr(int(match.group(1), 16))
-
-    # Заменяем escape-последовательности Unicode на соответствующие символы
-    return unicode_escape_pattern.sub(replace, data)
-
-
 @router.get("/history/", response_model=List[ScHistory])
 async def read_history(
         skip: int = 0, limit: int = 10, history_type: str = None, db: Session = Depends(get_db),
@@ -41,8 +29,11 @@ async def read_history(
 
     corrected_history_entries = []
     for entry in history_entries:
-        # Заменяем escape-последовательности Unicode в поле after_change
-        entry.after_change = replace_unicode_escapes(entry.after_change)
+        # Расшифровка escape-последовательностей Unicode
+        entry.after_change = entry.after_change.encode().decode('unicode-escape')
+
+        # Преобразование строки обратно в JSON-формат
+        entry.after_change = json.dumps(json.loads(entry.after_change))
 
         # Преобразование даты в ISO-формат
         entry_dict = entry.__dict__
