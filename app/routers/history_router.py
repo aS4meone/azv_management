@@ -116,36 +116,37 @@ async def delete_history_entry(history_id: int, db: Session = Depends(get_db)):
     return {"message": "Success"}
 
 
-def fix_unicode_in_database(db: Session):
-    # Получаем все записи из базы данных
-    history_entries = db.query(History).all()
+def fix_unicode_in_database(db: Session, json_data):
+    # Парсим JSON данные
+    try:
+        data = json.loads(json_data)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Невозможно разобрать строку JSON")
 
-    for entry in history_entries:
-        # Проверяем, что значения не являются None
-        if entry.before_change:
-            entry.before_change = fix_unicode(entry.before_change)
-        if entry.after_change:
-            entry.after_change = fix_unicode(entry.after_change)
+    # Исправляем Unicode-последовательности в поле 'name' внутри JSON в полях 'before_change' и 'after_change'
+    for item in data:
+        if 'before_change' in item:
+            item['before_change'] = fix_unicode(item['before_change'])
+        if 'after_change' in item:
+            item['after_change'] = fix_unicode(item['after_change'])
+            print(item['after_change'])
 
-        # Сохраняем изменения в базе данных
+    # Сохраняем изменения
     db.commit()
 
 
+@router.post("/fix_unicode_in_database/")
+async def fix_unicode_in_database_endpoint(json_data: str, db: Session = Depends(get_db)):
+    fix_unicode_in_database(db, json_data)
+    return {"message": "Unicode в базе данных исправлено успешно"}
+
+
+# Функция для исправления Unicode-последовательностей
 def fix_unicode(string):
-    # Проверяем, есть ли в строке Unicode-последовательности
     if "\\u" in string:
-        # Разбиваем строку по пробелу
         parts = string.split(" ")
-        # Исправляем Unicode-последовательности в каждом слове
         fixed_parts = [part.encode().decode('unicode-escape') if "\\u" in part else part for part in parts]
-        # Склеиваем исправленные части обратно в строку
         fixed_string = " ".join(fixed_parts)
         return fixed_string
     else:
         return string
-
-
-@router.post("/fix_unicode_in_database/")
-async def fix_unicode_in_database_endpoint(db: Session = Depends(get_db)):
-    fix_unicode_in_database(db)
-    return {"message": "Unicode исправлено успешно в базе данных"}
