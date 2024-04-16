@@ -29,17 +29,20 @@ async def read_history(
 
     corrected_history_entries = []
     for entry in history_entries:
+        # Расшифровка JSON-строки в поле after_change
         after_change_json = json.loads(entry.after_change.replace('\\"', ''))
 
+        # Преобразование даты в ISO-формат
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
 
+        # Создание скорректированной записи и добавление её в список
         corrected_entry = {
             "username": entry_dict["username"],
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
             "before_change": entry_dict["before_change"],
-            "after_change": json.dumps(after_change_json),
+            "after_change": json.dumps(after_change_json),  # Преобразование в строку JSON
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
             "id": entry_dict["id"],
@@ -48,10 +51,10 @@ async def read_history(
             "total_items_count": entry_dict["total_items_count"],
             "total_price": entry_dict["total_price"]
         }
+
         corrected_history_entries.append(ScHistory(**corrected_entry))
 
     return corrected_history_entries
-
 
 @router.get("/history/search/", response_model=List[ScHistory])
 async def search_history(
