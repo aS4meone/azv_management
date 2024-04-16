@@ -14,7 +14,6 @@ from app.schemas.history_schemas import History as ScHistory
 
 router = APIRouter(tags=['history'])
 
-
 @router.get("/history/", response_model=List[ScHistory])
 async def read_history(
         skip: int = 0, limit: int = 10, history_type: str = None, db: Session = Depends(get_db),
@@ -39,7 +38,7 @@ async def read_history(
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
             "before_change": entry_dict["before_change"],
-            "after_change": json.dumps(after_change_json),
+            "after_change": json.dumps(after_change_json, ensure_ascii=False),
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
             "id": entry_dict["id"],
@@ -51,6 +50,7 @@ async def read_history(
         corrected_history_entries.append(ScHistory(**corrected_entry))
 
     return corrected_history_entries
+
 
 
 @router.get("/history/search/", response_model=List[ScHistory])
@@ -89,7 +89,7 @@ async def search_history(
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
             "before_change": entry_dict["before_change"],
-            "after_change": json.dumps(after_change_json),
+            "after_change": json.dumps(after_change_json, ensure_ascii=False),
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
             "id": entry_dict["id"],
