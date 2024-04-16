@@ -29,23 +29,17 @@ async def read_history(
 
     corrected_history_entries = []
     for entry in history_entries:
-        # Расшифровка escape-последовательностей Unicode
-        entry.after_change = entry.after_change.encode().decode('unicode-escape')
+        after_change_json = json.loads(entry.after_change.replace('\\"', ''))
 
-        # Преобразование строки обратно в JSON-формат
-        entry.after_change = json.dumps(json.loads(entry.after_change))
-
-        # Преобразование даты в ISO-формат
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
 
-        # Создание скорректированной записи и добавление её в список
         corrected_entry = {
             "username": entry_dict["username"],
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
             "before_change": entry_dict["before_change"],
-            "after_change": entry.after_change,
+            "after_change": json.dumps(after_change_json),
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
             "id": entry_dict["id"],
@@ -120,3 +114,38 @@ async def delete_history_entry(history_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Success"}
+
+
+def fix_unicode_in_database(db: Session):
+    # Получаем все записи из базы данных
+    history_entries = db.query(History).all()
+
+    for entry in history_entries:
+        # Проверяем, что значения не являются None
+        if entry.before_change:
+            entry.before_change = fix_unicode(entry.before_change)
+        if entry.after_change:
+            entry.after_change = fix_unicode(entry.after_change)
+
+        # Сохраняем изменения в базе данных
+    db.commit()
+
+
+def fix_unicode(string):
+    # Проверяем, есть ли в строке Unicode-последовательности
+    if "\\u" in string:
+        # Разбиваем строку по пробелу
+        parts = string.split(" ")
+        # Исправляем Unicode-последовательности в каждом слове
+        fixed_parts = [part.encode().decode('unicode-escape') if "\\u" in part else part for part in parts]
+        # Склеиваем исправленные части обратно в строку
+        fixed_string = " ".join(fixed_parts)
+        return fixed_string
+    else:
+        return string
+
+
+@router.post("/fix_unicode_in_database/")
+async def fix_unicode_in_database_endpoint(db: Session = Depends(get_db)):
+    fix_unicode_in_database(db)
+    return {"message": "Unicode исправлено успешно в базе данных"}
