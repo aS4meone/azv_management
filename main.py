@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import time
 
 import pandas as pd
@@ -9,9 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from app.dependencies.database.database import get_db
+from app.models.item import Item
 from app.routers.items_router import router as irouter
 from app.routers.user_router import router as urouter
 from app.routers.history_router import router as hrouter
+from app.utils.send_excel import fetch_data, write_to_excel, write_to_excel_default
 
 app = FastAPI()
 
@@ -65,9 +68,29 @@ def schedule_export():
     schedule.every().day.at(export_time.strftime('%H:%M')).do(lambda: export_to_excel(next(get_db())))
 
 
+def send_files_to_telegram(db: Session):
+    items = db.query(Item).order_by(Item.name).all()
+    items_json = [{'name': item.name, 'price': item.price, 'quantity': item.quantity} for item in items]
+
+    if items_json:
+        write_to_excel(items_json)
+        write_to_excel_default(items_json)
+    files = ["price.xlsx", "price_default.xlsx"]
+    for file in files:
+        with open(file, 'rb') as f:
+            bot.send_document(IDIDID, f)
+    print("Files have been sent to Telegram successfully")
+
+
+def schedule_send_files():
+    schedule.every().day.at("03:00").do(lambda: send_files_to_telegram(next(get_db())))
+    schedule.every().day.at("16:00").do(lambda: send_files_to_telegram(next(get_db())))
+
+
 @app.on_event("startup")
 async def startup_event():
     schedule_export()
+    schedule_send_files()
 
 
 async def run_schedule():
