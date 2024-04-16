@@ -1,4 +1,5 @@
 import json
+import re
 
 from typing import List
 
@@ -15,6 +16,17 @@ from app.schemas.history_schemas import History as ScHistory
 router = APIRouter(tags=['history'])
 
 
+def replace_unicode_escapes(data: str) -> str:
+    unicode_escape_pattern = re.compile(r'\\u([\d\w]{4})')
+
+    def replace(match):
+        # Получаем значение Unicode и преобразуем его в символ
+        return chr(int(match.group(1), 16))
+
+    # Заменяем escape-последовательности Unicode на соответствующие символы
+    return unicode_escape_pattern.sub(replace, data)
+
+
 @router.get("/history/", response_model=List[ScHistory])
 async def read_history(
         skip: int = 0, limit: int = 10, history_type: str = None, db: Session = Depends(get_db),
@@ -29,8 +41,8 @@ async def read_history(
 
     corrected_history_entries = []
     for entry in history_entries:
-        # Расшифровка JSON-строки в поле after_change
-        after_change_json = json.loads(entry.after_change.replace('\\"', ''))
+        # Заменяем escape-последовательности Unicode в поле after_change
+        entry.after_change = replace_unicode_escapes(entry.after_change)
 
         # Преобразование даты в ISO-формат
         entry_dict = entry.__dict__
@@ -42,7 +54,7 @@ async def read_history(
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
             "before_change": entry_dict["before_change"],
-            "after_change": json.dumps(after_change_json),  # Преобразование в строку JSON
+            "after_change": entry.after_change,
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
             "id": entry_dict["id"],
@@ -51,10 +63,10 @@ async def read_history(
             "total_items_count": entry_dict["total_items_count"],
             "total_price": entry_dict["total_price"]
         }
-
         corrected_history_entries.append(ScHistory(**corrected_entry))
 
     return corrected_history_entries
+
 
 @router.get("/history/search/", response_model=List[ScHistory])
 async def search_history(
