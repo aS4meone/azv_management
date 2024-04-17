@@ -17,12 +17,21 @@ def write_to_excel(data):
     ws = wb.active
     ws.append(["Наименование", "Цена"])
 
+    max_name_length = 0  # Для хранения максимальной длины значения в столбце "Наименование"
+
     for item in data:
         name = item["name"]
         price = item["price"]
         if item["quantity"] < 10:
             name += f" ({item['quantity']})"
+
+        # Определение максимальной длины
+        max_name_length = max(max_name_length, len(name))
+
         ws.append([name, price])
+
+    # Установка ширины столбца "Наименование"
+    ws.column_dimensions['A'].width = max_name_length
 
     # Добавляем обводку таблицы
     border = Border(left=Side(style='thin'),
@@ -43,13 +52,20 @@ def write_to_excel_default(data):
     ws = wb.active
     ws.append(["Наименование", "Количество", "Цена"])
 
+    max_name_length = 0  # Для хранения максимальной длины значения в столбце "Наименование"
+
     for item in data:
         name = item["name"]
         quantity = item["quantity"]
         price = item["price"]
         if quantity < 10:
             name += f" ({quantity})"
+
+        max_name_length = max(max_name_length, len(name))
+
         ws.append([name, quantity, price])
+
+    ws.column_dimensions['A'].width = max_name_length
 
     # Добавляем обводку таблицы
     border = Border(left=Side(style='thin'),
