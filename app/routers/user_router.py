@@ -14,19 +14,19 @@ from app.schemas.user_schemas import User, UserCreate, UserLogin
 router = APIRouter(tags=['auth'])
 
 
-@router.delete("/clear-database/")
-def clear_database(db: Session = Depends(get_db)):
-    """ПРОСТО ТАК НЕ НАЖИМАТЬ"""
-    try:
-        db.query(History).delete()
-        db.query(Item).delete()
-        db.query(DBUser).delete()
-
-        db.commit()
-
-        return {"message": "All tables cleared successfully."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @router.delete("/clear-database/")
+# def clear_database(db: Session = Depends(get_db)):
+#     """ПРОСТО ТАК НЕ НАЖИМАТЬ"""
+#     try:
+#         db.query(History).delete()
+#         db.query(Item).delete()
+#         db.query(DBUser).delete()
+#
+#         db.commit()
+#
+#         return {"message": "All tables cleared successfully."}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/users/", response_model=User)
