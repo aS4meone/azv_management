@@ -33,13 +33,11 @@ async def read_history(
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
 
-        encoded_before_change = json.dumps(entry_dict["before_change"], ensure_ascii=False)
-
         corrected_entry = {
             "username": entry_dict["username"],
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
-            "before_change": encoded_before_change,
+            "before_change": entry_dict["before_change"],
             "after_change": json.dumps(after_change_json, ensure_ascii=False),
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
@@ -86,13 +84,11 @@ async def search_history(
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
 
-        encoded_before_change = json.dumps(entry_dict["before_change"], ensure_ascii=False)
-
         corrected_entry = {
             "username": entry_dict["username"],
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
-            "before_change": encoded_before_change,
+            "before_change": entry_dict["before_change"],
             "after_change": json.dumps(after_change_json, ensure_ascii=False),
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
