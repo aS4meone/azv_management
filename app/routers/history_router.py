@@ -80,17 +80,17 @@ async def search_history(
     corrected_history_entries = []
     for entry in history_entries:
         after_change_json = json.loads(entry.after_change.replace('\\"', ''))
+        encoded_before_change = json.loads(entry.before_change.replace('\\"', ''))
 
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
 
-        encoded_before_change = json.dumps(entry_dict["before_change"], ensure_ascii=False)
 
         corrected_entry = {
             "username": entry_dict["username"],
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
-            "before_change": encoded_before_change,
+            "before_change": json.dumps(encoded_before_change, ensure_ascii=False),
             "after_change": json.dumps(after_change_json, ensure_ascii=False),
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
