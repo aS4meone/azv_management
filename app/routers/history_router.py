@@ -29,10 +29,11 @@ async def read_history(
     corrected_history_entries = []
     for entry in history_entries:
         after_change_json = json.loads(entry.after_change.replace('\\"', ''))
-        encoded_before_change = json.dumps(entry_dict["before_change"], ensure_ascii=False)
 
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
+
+        encoded_before_change = json.dumps(entry_dict["before_change"], ensure_ascii=False)
 
         corrected_entry = {
             "username": entry_dict["username"],
