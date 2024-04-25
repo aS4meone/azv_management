@@ -85,7 +85,7 @@ async def search_history(
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
 
-
+        print("First - ", encoded_before_change)
         corrected_entry = {
             "username": entry_dict["username"],
             "buyer": entry_dict["buyer"],
@@ -101,7 +101,7 @@ async def search_history(
             "total_price": entry_dict["total_price"]
         }
         corrected_history_entries.append(ScHistory(**corrected_entry))
-
+        print("Second - ", json.dumps(encoded_before_change, ensure_ascii=False))
     return corrected_history_entries
 
 
