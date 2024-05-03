@@ -39,7 +39,7 @@ async def read_history(
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
             "before_change": entry_dict["before_change"],
-            "after_change": json.dumps(after_change_json, ensure_ascii=True),
+            "after_change": json.dumps(after_change_json, ensure_ascii=False),
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
             "id": entry_dict["id"],
