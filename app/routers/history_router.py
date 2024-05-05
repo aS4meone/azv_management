@@ -30,7 +30,10 @@ async def read_history(
     corrected_history_entries = []
     for entry in history_entries:
         after_change_json = json.loads(entry.after_change.replace('\\"', ''))
-
+        if entry.before_change:
+            before_change_json = json.loads(entry.before_change.replace('\\"', ''))
+        else:
+            before_change_json = None
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
 
@@ -38,7 +41,7 @@ async def read_history(
             "username": entry_dict["username"],
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
-            "before_change": entry_dict["before_change"],
+            "before_change": json.dumps(before_change_json, ensure_ascii=False),
             "after_change": json.dumps(after_change_json, ensure_ascii=False),
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
