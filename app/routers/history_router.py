@@ -62,48 +62,39 @@ async def search_history(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user),
 ):
-    query = db.query(History)
+    query = db.query(History).order_by(desc(History.timestamp))
 
+    corrected_history_entries = []
+    query_string = query_string.lower()
     for entry in query:
         if entry.before_change:
             entry.before_change = json.loads(entry.before_change.replace('\\"', ''))
         if entry.after_change:
             entry.after_change = json.loads(entry.after_change.replace('\\"', ''))
-
-
-    column_filters = [
-        History.username.ilike(f"%{query_string}%"),
-        History.buyer.ilike(f"%{query_string}%"),
-        History.extra_info.ilike(f"%{query_string}%"),
-        History.before_change.ilike(f"%{query_string}%"),
-        History.after_change.ilike(f"%{query_string}%"),
-        History.history_type.ilike(f"%{query_string}%"),
-        History.title.ilike(f"%{query_string}%"),
-    ]
-
-    query = query.filter(or_(*column_filters)).order_by(desc(History.timestamp))
-    history_entries = query.all()
-
-    corrected_history_entries = []
-    for entry in history_entries:
-        entry_dict = entry.__dict__
-        entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
-
-        corrected_entry = {
-            "username": entry_dict["username"],
-            "buyer": entry_dict["buyer"],
-            "extra_info": entry_dict["extra_info"],
-            "before_change": json.dumps(entry.before_change, ensure_ascii=False) if entry.before_change else None,
-            "after_change": json.dumps(entry.after_change, ensure_ascii=False) if entry.after_change else None,
-            "history_type": entry_dict["history_type"],
-            "title": entry_dict["title"],
-            "id": entry_dict["id"],
-            "timestamp": entry_dict["timestamp"],
-            "total_unique_items_count": entry_dict["total_unique_items_count"],
-            "total_items_count": entry_dict["total_items_count"],
-            "total_price": entry_dict["total_price"]
-        }
-        corrected_history_entries.append(ScHistory(**corrected_entry))
+        if (
+                (entry.username and query_string in entry.username.lower()) or
+                (entry.buyer and query_string in entry.buyer.lower()) or
+                (entry.before_change and any(query_string in item['name'].lower() for item in entry.before_change)) or
+                (entry.after_change and any(query_string in item['name'].lower() for item in entry.after_change)) or
+                (entry.extra_info and query_string in entry.extra_info.lower()) or
+                (entry.history_type and query_string in entry.history_type.lower()) or
+                (entry.title and query_string in entry.title.lower())
+        ):
+            corrected_entry = {
+                "username": entry.username,
+                "buyer": entry.buyer,
+                "extra_info": entry.extra_info,
+                "before_change": json.dumps(entry.before_change, ensure_ascii=False) if entry.before_change else None,
+                "after_change": json.dumps(entry.after_change, ensure_ascii=False) if entry.after_change else None,
+                "history_type": entry.history_type,
+                "title": entry.title,
+                "id": entry.id,
+                "timestamp": entry.timestamp.isoformat(),
+                "total_unique_items_count": entry.total_unique_items_count,
+                "total_items_count": entry.total_items_count,
+                "total_price": entry.total_price
+            }
+            corrected_history_entries.append(ScHistory(**corrected_entry))
 
     return corrected_history_entries
 
