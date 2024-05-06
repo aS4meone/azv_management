@@ -58,9 +58,9 @@ async def read_history(
 
 @router.get("/history/search/", response_model=List[ScHistory])
 async def search_history(
-        query_string: str,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
+    query_string: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     query = db.query(History)
 
@@ -74,7 +74,7 @@ async def search_history(
         History.title.ilike(f"%{query_string}%"),
     ]
 
-    query = query.filter(or_(*column_filters))
+    query = query.filter(or_(*column_filters)).order_by(desc(History.timestamp))
 
     history_entries = query.all()
 
