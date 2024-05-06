@@ -58,27 +58,33 @@ async def read_history(
 
 @router.get("/history/search/", response_model=List[ScHistory])
 async def search_history(
-        query_string: str, db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user)
+        query_string: str,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
-    search_terms = query_string.split()
+    query = db.query(History)
 
-    search_filter = or_(
-        *[getattr(History, column_name).ilike(f'%{term}%') for term in search_terms
-          for column_name in ['username', 'buyer', 'extra_info', 'before_change',
-                              'after_change', 'history_type', 'title']]
-    )
+    column_filters = [
+        History.username.ilike(f"%{query_string}%"),
+        History.buyer.ilike(f"%{query_string}%"),
+        History.extra_info.ilike(f"%{query_string}%"),
+        History.before_change.ilike(f"%{query_string}%"),
+        History.after_change.ilike(f"%{query_string}%"),
+        History.history_type.ilike(f"%{query_string}%"),
+        History.title.ilike(f"%{query_string}%"),
+    ]
 
-    history_entries = (
-        db.query(History)
-        .filter(search_filter)
-        .order_by(desc(History.timestamp))
-        .all()
-    )
+    query = query.filter(or_(*column_filters))
+
+    history_entries = query.all()
 
     corrected_history_entries = []
     for entry in history_entries:
         after_change_json = json.loads(entry.after_change.replace('\\"', ''))
+        if entry.before_change:
+            before_change_json = json.loads(entry.before_change.replace('\\"', ''))
+        else:
+            before_change_json = None
 
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
@@ -87,7 +93,7 @@ async def search_history(
             "username": entry_dict["username"],
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
-            "before_change": entry_dict["before_change"],
+            "before_change": json.dumps(before_change_json, ensure_ascii=False),
             "after_change": json.dumps(after_change_json, ensure_ascii=False),
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
