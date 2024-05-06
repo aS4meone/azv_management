@@ -58,9 +58,9 @@ async def read_history(
 
 @router.get("/history/search/", response_model=List[ScHistory])
 async def search_history(
-    query_string: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        query_string: str,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     query = db.query(History)
 
@@ -74,18 +74,18 @@ async def search_history(
         History.title.ilike(f"%{query_string}%"),
     ]
 
-    query = query.filter(or_(*column_filters)).order_by(desc(History.timestamp))
+    for entry in query:
+        if entry.before_change:
+            entry.before_change = json.loads(entry.before_change.replace('\\"', ''))
+        if entry.after_change:
+            entry.after_change = json.loads(entry.after_change.replace('\\"', ''))
+            print(entry.after_change)
 
+    query = query.filter(or_(*column_filters))
     history_entries = query.all()
 
     corrected_history_entries = []
     for entry in history_entries:
-        after_change_json = json.loads(entry.after_change.replace('\\"', ''))
-        if entry.before_change:
-            before_change_json = json.loads(entry.before_change.replace('\\"', ''))
-        else:
-            before_change_json = None
-
         entry_dict = entry.__dict__
         entry_dict["timestamp"] = entry_dict["timestamp"].isoformat()
 
@@ -93,8 +93,8 @@ async def search_history(
             "username": entry_dict["username"],
             "buyer": entry_dict["buyer"],
             "extra_info": entry_dict["extra_info"],
-            "before_change": json.dumps(before_change_json, ensure_ascii=False),
-            "after_change": json.dumps(after_change_json, ensure_ascii=False),
+            "before_change": json.dumps(entry.before_change, ensure_ascii=False) if entry.before_change else None,
+            "after_change": json.dumps(entry.after_change, ensure_ascii=False) if entry.after_change else None,
             "history_type": entry_dict["history_type"],
             "title": entry_dict["title"],
             "id": entry_dict["id"],
