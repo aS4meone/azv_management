@@ -64,6 +64,13 @@ async def search_history(
 ):
     query = db.query(History)
 
+    for entry in query:
+        if entry.before_change:
+            entry.before_change = json.loads(entry.before_change.replace('\\"', ''))
+        if entry.after_change:
+            entry.after_change = json.loads(entry.after_change.replace('\\"', ''))
+
+
     column_filters = [
         History.username.ilike(f"%{query_string}%"),
         History.buyer.ilike(f"%{query_string}%"),
@@ -74,14 +81,7 @@ async def search_history(
         History.title.ilike(f"%{query_string}%"),
     ]
 
-    for entry in query:
-        if entry.before_change:
-            entry.before_change = json.loads(entry.before_change.replace('\\"', ''))
-        if entry.after_change:
-            entry.after_change = json.loads(entry.after_change.replace('\\"', ''))
-            print(entry.after_change)
-
-    query = query.filter(or_(*column_filters))
+    query = query.filter(or_(*column_filters)).order_by(desc(History.timestamp))
     history_entries = query.all()
 
     corrected_history_entries = []
